@@ -1,0 +1,7 @@
+import { Card } from '../../components/ui/Card';
+import { Badge } from '../../components/ui/Badge';
+import { signedMoney } from '../../components/ui/format';
+import type { Position } from '../../types';
+export function PositionsTable({ positions }: { positions: Position[] }) {
+  return <Card className="positions-card"><div className="panel-heading"><div className="heading-inline"><h2>Open positions</h2><span className="count">{positions.length}</span></div><Badge>SIMULATED</Badge></div><div className="table-scroll"><table><caption className="sr-only">Fictional paper trading positions</caption><thead><tr>{['Instrument','Side','Size (lots)','Entry price','Current price','Unrealized P/L'].map(label => <th key={label}>{label}</th>)}</tr></thead><tbody>{positions.map(position => <tr key={position.id}><td><strong>{position.symbol}</strong><small>{position.name}</small></td><td><Badge tone={position.side === 'Buy' ? 'green' : 'amber'}>{position.side}</Badge></td><td>{position.lots.toFixed(2)}</td><td>{position.entry.toFixed(position.symbol === 'XAU/USD' ? 2 : 5)}</td><td>{position.current.toFixed(position.symbol === 'XAU/USD' ? 2 : 5)}</td><td className={position.pnl >= 0 ? 'positive' : 'negative'}>{signedMoney(position.pnl)}</td></tr>)}</tbody></table></div><div className="table-footer"><span>Fictional positions · USD account</span><span>Total unrealized P/L <strong className="positive">{signedMoney(positions.reduce((sum, p) => sum + p.pnl, 0))}</strong></span></div></Card>;
+}

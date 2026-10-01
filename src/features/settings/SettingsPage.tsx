@@ -1,0 +1,3 @@
+import { Card } from '../../components/ui/Card';
+import { FeatureIntro } from '../../components/ui/FeatureIntro';
+export function SettingsPage() { return <FeatureIntro title="Settings" description="Current workspace configuration."><Card><h2>Workspace details</h2><dl className="settings-list">{[['Environment','Local demo'],['Trading mode','Paper trading only'],['Data source','Fictional mock service'],['Account currency','USD'],['Agent','Inactive'],['Broker connection','Not configured']].map(([label,value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></Card></FeatureIntro>; }
