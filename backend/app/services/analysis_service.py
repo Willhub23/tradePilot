@@ -166,6 +166,13 @@ class AnalysisService:
             period=14,
         )
 
+        previous_rsi = self.indicator_service.calculate_rsi(
+            candles=candles[:-1],
+            period=14,
+        )
+
+        rsi_change = round(rsi - previous_rsi, 2)
+
         macd_result = self.indicator_service.calculate_macd(
             candles=candles,
             fast_period=12,
@@ -201,6 +208,7 @@ class AnalysisService:
 
         signal_result = self.signal_service.calculate_score(
             rsi=rsi,
+            rsi_change=rsi_change,
             macd_histogram=macd_result["histogram"],
             ema_20=ema_20,
             ema_50=ema_50,
@@ -210,6 +218,8 @@ class AnalysisService:
         return {
             "candles": candles,
             "rsi": rsi,
+            "previous_rsi": previous_rsi,
+            "rsi_change": rsi_change,
             "macd_result": macd_result,
             "ema_20": ema_20,
             "ema_50": ema_50,

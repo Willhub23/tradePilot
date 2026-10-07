@@ -2,6 +2,7 @@ class SignalService:
     def calculate_score(
         self,
         rsi: float,
+        rsi_change: float,
         macd_histogram: float,
         ema_20: float,
         ema_50: float,
@@ -9,18 +10,37 @@ class SignalService:
     ) -> dict:
         score = 50.0
 
-        
         rsi_contribution = 0.0
         macd_contribution = 0.0
         trend_contribution = 0.0
 
-        # RSI contribution: max +/- 15
-        if rsi > 50:
-            rsi_strength = min((rsi - 50) / 20, 1)
-            rsi_contribution += rsi_strength * 15
-        elif rsi < 50:
-            rsi_strength = min((50 - rsi) / 20, 1)
-            rsi_contribution -= rsi_strength * 15
+        # RSI contribution
+        # RSI level describes the market state.
+        # RSI change tells us whether momentum is strengthening or weakening.
+
+        if rsi <= 30:
+            if rsi_change < 0:
+                rsi_contribution = -8.0
+            elif rsi_change > 0:
+                rsi_contribution = 4.0
+
+        elif rsi <= 40:
+            if rsi_change < 0:
+                rsi_contribution = -6.0
+            elif rsi_change > 0:
+                rsi_contribution = 2.0
+
+        elif rsi >= 70:
+            if rsi_change > 0:
+                rsi_contribution = 8.0
+            elif rsi_change < 0:
+                rsi_contribution = -4.0
+
+        elif rsi >= 60:
+            if rsi_change > 0:
+                rsi_contribution = 6.0
+            elif rsi_change < 0:
+                rsi_contribution = -2.0
 
         score += rsi_contribution
 
@@ -57,12 +77,12 @@ class SignalService:
             bias = "neutral"
 
         return {
-        "score": score,
-        "bias": bias,
-        "breakdown": {
-            "base": 50,
-            "rsi": round(rsi_contribution, 2),
-            "macd": round(macd_contribution, 2),
-            "trend": round(trend_contribution, 2),
-    },
-}
+            "score": score,
+            "bias": bias,
+            "breakdown": {
+                "base": 50,
+                "rsi": round(rsi_contribution, 2),
+                "macd": round(macd_contribution, 2),
+                "trend": round(trend_contribution, 2),
+            },
+        }
