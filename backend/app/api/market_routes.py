@@ -11,6 +11,8 @@ from app.models.market_models import (
     MarketAnalysis,
     MultiTimeframeAnalysis,
 )
+
+from app.services.decision_log_service import DecisionLogService
 from app.services.analysis_service import AnalysisService
 from app.providers.twelve_data_provider import TwelveDataProvider
 from app.services.market_service import MarketService
@@ -32,6 +34,7 @@ market_service = MarketService(provider=TwelveDataProvider(api_key))
 indicator_service = IndicatorService()
 
 signal_service = SignalService()
+decision_log_service = DecisionLogService()
 
 
 analysis_service = AnalysisService(
@@ -136,10 +139,14 @@ def get_market_analysis(
     symbol: str,
     interval: str = Query(default="5min"),
 ):
-    return analysis_service.analyze_timeframe(
+    analysis = analysis_service.analyze_timeframe(
         symbol=symbol,
         interval=interval,
     )
+
+    decision_log_service.log_analysis(analysis)
+
+    return analysis
 
 
 @router.get(
