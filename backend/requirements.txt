@@ -3,3 +3,7 @@ uvicorn[standard]
 httpx
 python-dotenv
 pytest
+openai
+sqlalchemy
+psycopg[binary]
+APScheduler>=3.11,<4
