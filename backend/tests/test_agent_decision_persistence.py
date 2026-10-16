@@ -22,6 +22,8 @@ from app.services.paper_trading_service import PaperTradingService
 from app.providers.local_paper_broker_provider import LocalPaperBrokerProvider
 from app.services.position_manager_service import PositionManagerService
 
+from tests.market_fixtures import market_structure_fields
+
 pytestmark = pytest.mark.usefixtures("isolated_sessions")
 
 
@@ -32,6 +34,7 @@ def context():
         symbol="XAUUSD",
         market_analysis=MultiTimeframeAnalysis(
             symbol="XAUUSD", price=4180, price_timestamp=now, timeframes=[TimeframeAnalysis(
+            **market_structure_fields(current_price=4180.0),
             interval="1h", latest_candle_timestamp=datetime.now(timezone.utc),
             rsi=60, ema_20=4180, ema_50=4170, atr=10, score=65,
             bias="bullish", trend_direction="bullish", trend_strength=1.5,

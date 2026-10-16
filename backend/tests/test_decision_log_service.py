@@ -1,5 +1,7 @@
 from app.models.market_models import MacdValue, MarketAnalysis
 from app.services.decision_log_service import DecisionLogService
+from tests.market_fixtures import market_structure_fields
+
 
 
 def test_decision_log_service_appends_entries(tmp_path):
@@ -10,6 +12,7 @@ def test_decision_log_service_appends_entries(tmp_path):
     )
 
     analysis = MarketAnalysis(
+        **market_structure_fields(current_price=4100.0),
         symbol="XAUUSD",
         interval="5min",
         price=4100.0,

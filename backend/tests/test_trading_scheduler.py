@@ -17,6 +17,8 @@ from app.services import trading_cycle_service
 from app.providers.broker_base import BrokerProvider
 from app.services.position_manager_service import PositionManagerService
 from app.services.trading_scheduler import create_trading_scheduler, run_scheduled_cycle
+from tests.market_fixtures import market_structure_fields
+
 
 
 @pytest.fixture
@@ -26,6 +28,7 @@ def cycle(monkeypatch, tmp_path):
     analysis.analyze_multi_timeframe.return_value = MultiTimeframeAnalysis(
         symbol="XAUUSD", price=4180, price_timestamp=datetime.now(timezone.utc),
         timeframes=[TimeframeAnalysis(
+            **market_structure_fields(current_price=4180.0),
             interval="1h", latest_candle_timestamp=datetime.now(timezone.utc),
             rsi=60, ema_20=4180, ema_50=4170, atr=10, score=65,
             bias="bullish", trend_direction="bullish", trend_strength=1.5,

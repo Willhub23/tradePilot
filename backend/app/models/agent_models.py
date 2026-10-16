@@ -34,6 +34,9 @@ class AgentDecision(BaseModel):
 class AgentMarketContext(BaseModel):
     symbol: str
     market_analysis: MultiTimeframeAnalysis
+
+    macro_context: dict
+    evidence_priority: dict
     macro_risk: MacroEventRisk
 
 

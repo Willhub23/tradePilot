@@ -58,3 +58,6 @@ class MacroService:
             return False
 
         return True
+
+    def get_events(self) -> list[MacroEvent]:
+        return self.provider.get_upcoming_events()

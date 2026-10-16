@@ -9,6 +9,10 @@ class MacroEvent(BaseModel):
     impact: str
     event_time: datetime
 
+    category: str | None = None
+    speaker: str | None = None
+    scheduled: bool = True
+
 
 class MacroEventRisk(BaseModel):
     event_risk: str

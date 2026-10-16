@@ -7,6 +7,8 @@ from app.models.market_models import (
     TimeframeAnalysis,
 )
 from app.services.grounding_validator import GroundingValidator
+from tests.market_fixtures import market_structure_fields
+
 
 
 def test_rejects_unsupported_macro_direction():
@@ -16,6 +18,7 @@ def test_rejects_unsupported_macro_direction():
         price_timestamp=datetime.now(timezone.utc),
         timeframes=[
             TimeframeAnalysis(
+                **market_structure_fields(current_price=4180.0),
                 interval="5min",
                 latest_candle_timestamp=datetime.now(timezone.utc),
                 rsi=45.0,
@@ -29,6 +32,7 @@ def test_rejects_unsupported_macro_direction():
                 trend_strength_label="moderate",
             ),
             TimeframeAnalysis(
+                **market_structure_fields(current_price=4180.0),
                 interval="15min",
                 latest_candle_timestamp=datetime.now(timezone.utc),
                 rsi=55.0,
@@ -42,6 +46,7 @@ def test_rejects_unsupported_macro_direction():
                 trend_strength_label="strong",
             ),
             TimeframeAnalysis(
+                **market_structure_fields(current_price=4180.0),
                 interval="1h",
                 latest_candle_timestamp=datetime.now(timezone.utc),
                 rsi=65.0,
@@ -99,6 +104,7 @@ def test_allows_non_directional_macro_risk():
         price_timestamp=datetime.now(timezone.utc),
         timeframes=[
             TimeframeAnalysis(
+                **market_structure_fields(current_price=4180.0),
                 interval="5min",
                 latest_candle_timestamp=datetime.now(timezone.utc),
                 rsi=45.0,
@@ -112,6 +118,7 @@ def test_allows_non_directional_macro_risk():
                 trend_strength_label="moderate",
             ),
             TimeframeAnalysis(
+                **market_structure_fields(current_price=4180.0),
                 interval="15min",
                 latest_candle_timestamp=datetime.now(timezone.utc),
                 rsi=55.0,
@@ -125,6 +132,7 @@ def test_allows_non_directional_macro_risk():
                 trend_strength_label="strong",
             ),
             TimeframeAnalysis(
+                **market_structure_fields(current_price=4180.0),
                 interval="1h",
                 latest_candle_timestamp=datetime.now(timezone.utc),
                 rsi=65.0,

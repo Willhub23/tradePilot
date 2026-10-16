@@ -4,7 +4,6 @@ from app.db_models import PaperTradeRecord
 from app.models.trade_models import TradeProposal
 from app.services.paper_trading_service import PaperTradingService
 
-
 pytestmark = pytest.mark.usefixtures("isolated_sessions")
 
 
@@ -32,8 +31,12 @@ def test_open_persists_and_survives_service_restart(isolated_sessions):
     loaded = restarted.get_position(position.id)
     assert loaded is not None
     # SQLite does not retain timezone metadata; PostgreSQL does.
-    assert loaded.opened_at.replace(tzinfo=None) == position.opened_at.replace(tzinfo=None)
-    assert loaded.model_dump(exclude={"opened_at"}) == position.model_dump(exclude={"opened_at"})
+    assert loaded.opened_at.replace(tzinfo=None) == position.opened_at.replace(
+        tzinfo=None
+    )
+    assert loaded.model_dump(exclude={"opened_at"}) == position.model_dump(
+        exclude={"opened_at"}
+    )
     assert restarted.get_open_positions() == [loaded]
     assert restarted.get_closed_positions() == []
     assert restarted.get_position("missing") is None
@@ -102,8 +105,19 @@ def test_close_by_id_and_performance_survive_restart():
         "total_trades": 2,
         "wins": 1,
         "losses": 1,
+        "breakeven_trades": 0,
         "win_rate": 50.0,
         "total_pnl": 4.0,
+        "average_win": 8.0,
+        "average_loss": -4.0,
+        "profit_factor": 2.0,
+        "largest_win": 8.0,
+        "largest_loss": -4.0,
+        "average_holding_minutes": 0.0,
+        "long_trades": 1,
+        "short_trades": 1,
+        "long_pnl": -4.0,
+        "short_pnl": 8.0,
     }
 
 
@@ -112,6 +126,17 @@ def test_empty_performance_summary():
         "total_trades": 0,
         "wins": 0,
         "losses": 0,
+        "breakeven_trades": 0,
         "win_rate": 0.0,
         "total_pnl": 0,
+        "average_win": 0.0,
+        "average_loss": 0.0,
+        "profit_factor": None,
+        "largest_win": 0.0,
+        "largest_loss": 0.0,
+        "average_holding_minutes": 0.0,
+        "long_trades": 0,
+        "short_trades": 0,
+        "long_pnl": 0,
+        "short_pnl": 0,
     }

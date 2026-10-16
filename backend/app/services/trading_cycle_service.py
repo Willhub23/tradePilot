@@ -1,3 +1,8 @@
+from app.services.macro_context_service import MacroContextService
+from app.services.evidence_priority_service import EvidencePriorityService
+from datetime import datetime, timezone
+
+
 from app.models.agent_models import AgentMarketContext
 from app.services.agent_service import AgentService
 from app.services.analysis_service import AnalysisService
@@ -24,18 +29,33 @@ class TradingCycleService:
         self.trade_proposal_service = TradeProposalService()
         self.risk_service = RiskService()
         self.market_session_service = MarketSessionService()
+        self.macro_context_service = MacroContextService()
+        self.evidence_priority_service = EvidencePriorityService()
 
     def run(self, symbol: str) -> AgentResult:
         market_analysis = self.analysis_service.analyze_multi_timeframe(
             symbol=symbol,
         )
 
+        events = self.macro_service.get_events()
+
         macro_risk = self.macro_service.get_event_risk()
+
+        macro_context = self.macro_context_service.build_context(
+            events=events,
+            now=datetime.now(timezone.utc),
+        )
+
+        evidence_priority = self.evidence_priority_service.prioritize(
+            macro_context=macro_context,
+        )
 
         context = AgentMarketContext(
             symbol=symbol.upper(),
             market_analysis=market_analysis,
             macro_risk=macro_risk,
+            macro_context=macro_context,
+            evidence_priority=evidence_priority,
         )
 
         result = self.agent_service.make_decision(context)

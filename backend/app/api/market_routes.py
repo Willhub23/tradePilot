@@ -18,6 +18,11 @@ from app.providers.twelve_data_provider import TwelveDataProvider
 from app.services.market_service import MarketService
 from app.services.indicator_service import IndicatorService
 from app.services.signal_service import SignalService
+from app.services.market_structure_service import MarketStructureService
+from app.services.volatility_service import VolatilityService
+from app.services.market_regime_service import MarketRegimeService
+from app.services.moving_average_service import MovingAverageService
+from app.services.price_action_service import PriceActionService
 
 load_dotenv()
 
@@ -31,16 +36,27 @@ if not api_key:
 
 market_service = MarketService(provider=TwelveDataProvider(api_key))
 
+price_action_service = PriceActionService()
 indicator_service = IndicatorService()
-
+market_regime_service = MarketRegimeService()
 signal_service = SignalService()
 decision_log_service = DecisionLogService()
+market_structure_service = MarketStructureService()
+volatility_service = VolatilityService()
 
+moving_average_service = MovingAverageService(
+    indicator_service=indicator_service,
+)
 
 analysis_service = AnalysisService(
     market_service=market_service,
     indicator_service=indicator_service,
     signal_service=signal_service,
+    market_structure_service=market_structure_service,
+    volatility_service=volatility_service,
+    market_regime_service=market_regime_service,
+    moving_average_service=moving_average_service,
+    price_action_service=price_action_service,
 )
 
 
