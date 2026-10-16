@@ -9,9 +9,9 @@ class GroundingValidator:
         context: AgentMarketContext,
         decision: AgentDecision,
     ) -> AgentDecision:
-        macro = context.macro_risk
+        event_name = context.macro_context["event_name"]
 
-        if not macro.next_event:
+        if not event_name:
             return decision
 
         text = " ".join(
@@ -28,7 +28,7 @@ class GroundingValidator:
         macro_references = [
             "macro event",
             "economic event",
-            macro.next_event.lower(),
+            event_name.lower(),
         ]
 
         directional_words = [

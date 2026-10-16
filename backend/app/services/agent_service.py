@@ -45,6 +45,9 @@ class AgentService:
                 decision=validated_decision,
             )
 
+        print("=== FINAL AGENT DECISION ===")
+        print(decision.model_dump_json(indent=2))
+
         decision_id = self.persistence.save_decision(context, decision)
         self.logger.log_decision(context=context, decision=decision)
         return PersistedAgentDecision(decision_id=decision_id, decision=decision)

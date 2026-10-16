@@ -12,7 +12,6 @@ from fastapi.testclient import TestClient
 from app.api.agent_routes import create_agent_router
 from app.models.agent_models import AgentDecision, AgentResult, PersistedAgentDecision
 from app.models.market_models import MultiTimeframeAnalysis, TimeframeAnalysis
-from app.models.macro_models import MacroEventRisk
 from app.services import trading_cycle_service
 from app.providers.broker_base import BrokerProvider
 from app.services.position_manager_service import PositionManagerService
@@ -36,10 +35,7 @@ def cycle(monkeypatch, tmp_path):
         )], overall_score=65, overall_bias="bullish", timeframe_alignment="aligned",
     )
     macro = Mock()
-    macro.get_event_risk.return_value = MacroEventRisk(
-        event_risk="low", next_event=None, minutes_until_event=None,
-        event_time=None, allow_new_trade=True,
-    )
+    macro.get_events.return_value = []
     agent = Mock()
     agent.make_decision.return_value = PersistedAgentDecision(
         decision_id="decision-1",
@@ -226,3 +222,26 @@ def test_cycle_requires_one_hour_analysis(cycle):
     result = cycle.run("XAUUSD")
     assert result.execution_block_reason == "missing_1h_analysis"
     cycle.broker_provider.open_position.assert_not_called()
+
+
+def test_cycle_builds_macro_context_and_evidence_from_events(cycle, monkeypatch):
+    from app.models.macro_models import MacroEvent
+    from app.services.evidence_priority_service import EvidencePriorityService
+    from tests.macro_fixtures import NOW
+
+    clock = Mock()
+    clock.now.return_value = NOW
+    monkeypatch.setattr(trading_cycle_service, "datetime", clock)
+    cycle.macro_service.get_events.return_value = [MacroEvent(
+        name="CPI", country="US", impact="high",
+        event_time=NOW + timedelta(minutes=10), category="inflation",
+    )]
+    cycle.run("XAUUSD")
+    context = cycle.agent_service.make_decision.call_args.args[0]
+    assert context.macro_context["state"] == "event_imminent"
+    assert context.macro_context["event_name"] == "CPI"
+    assert context.macro_context["allow_new_trade"] is False
+    assert context.evidence_priority == EvidencePriorityService().prioritize(context.macro_context)
+    assert "macro_risk" not in context.model_dump()
+    cycle.macro_service.get_events.assert_called_once_with()
+    cycle.macro_service.get_event_risk.assert_not_called()

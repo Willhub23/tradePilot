@@ -39,8 +39,6 @@ class TradingCycleService:
 
         events = self.macro_service.get_events()
 
-        macro_risk = self.macro_service.get_event_risk()
-
         macro_context = self.macro_context_service.build_context(
             events=events,
             now=datetime.now(timezone.utc),
@@ -53,10 +51,12 @@ class TradingCycleService:
         context = AgentMarketContext(
             symbol=symbol.upper(),
             market_analysis=market_analysis,
-            macro_risk=macro_risk,
             macro_context=macro_context,
             evidence_priority=evidence_priority,
         )
+
+        print("=== AGENT CONTEXT ===")
+        print(context.model_dump_json(indent=2))
 
         result = self.agent_service.make_decision(context)
         decision = result.decision

@@ -65,6 +65,8 @@ Do not wrap the JSON in markdown.
 Do not add commentary before or after the JSON.
 """
 
+        print("=== AGENT PROMPT ===")
+        print(system_prompt)
         for attempt in range(self.MAX_ATTEMPTS):
             response = httpx.post(
                 f"{self.base_url}/api/chat",
@@ -72,6 +74,9 @@ Do not add commentary before or after the JSON.
                     "model": self.model,
                     "stream": False,
                     "format": "json",
+                    "options": {
+                        "num_ctx": 8192,
+                    },
                     "messages": [
                         {
                             "role": "system",
@@ -81,17 +86,18 @@ Do not add commentary before or after the JSON.
                             "role": "user",
                             "content": (
                                 "Analyze this market context:\n\n"
-                                + context.model_dump_json(indent=2)
+                                + context.model_dump_json()
                             ),
                         },
                     ],
                 },
-                timeout=120,
+                timeout=300,
             )
 
             response.raise_for_status()
 
             result = response.json()
+
             raw_decision = result["message"]["content"]
 
             try:
@@ -109,6 +115,9 @@ Do not add commentary before or after the JSON.
                     f"(attempt {attempt + 1}/{self.MAX_ATTEMPTS}): {exc}"
                 )
                 print(f"[LLM] Raw output: {raw_decision}")
+
+                print("=== RAW AGENT RESPONSE ===")
+                print(response)
 
         return AgentDecision(
             action="hold",

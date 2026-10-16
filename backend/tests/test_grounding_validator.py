@@ -1,13 +1,13 @@
 from datetime import datetime, timezone
 
 from app.models.agent_models import AgentDecision, AgentMarketContext
-from app.models.macro_models import MacroEventRisk
 from app.models.market_models import (
     MultiTimeframeAnalysis,
     TimeframeAnalysis,
 )
 from app.services.grounding_validator import GroundingValidator
 from tests.market_fixtures import market_structure_fields
+from tests.macro_fixtures import agent_macro_fields
 
 
 
@@ -68,13 +68,7 @@ def test_rejects_unsupported_macro_direction():
     context = AgentMarketContext(
         symbol="XAUUSD",
         market_analysis=market_analysis,
-        macro_risk=MacroEventRisk(
-            event_risk="medium",
-            next_event="US Initial Jobless Claims",
-            minutes_until_event=120,
-            event_time=datetime.now(timezone.utc),
-            allow_new_trade=True,
-        ),
+        **agent_macro_fields(),
     )
 
     decision = AgentDecision(
@@ -154,13 +148,7 @@ def test_allows_non_directional_macro_risk():
     context = AgentMarketContext(
         symbol="XAUUSD",
         market_analysis=market_analysis,
-        macro_risk=MacroEventRisk(
-            event_risk="medium",
-            next_event="US Initial Jobless Claims",
-            minutes_until_event=120,
-            event_time=datetime.now(timezone.utc),
-            allow_new_trade=True,
-        ),
+        **agent_macro_fields(),
     )
 
     decision = AgentDecision(

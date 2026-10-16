@@ -35,7 +35,7 @@ class EvidencePriorityService:
                 "allow_new_trade": macro_context["allow_new_trade"],
             }
 
-        if state in {"pre_event", "high_impact_day", "scheduled_political_event"}:
+        if state in {"pre_event", "high_impact_day"}:
             return {
                 "technical_weight": 0.60,
                 "macro_weight": 0.40,

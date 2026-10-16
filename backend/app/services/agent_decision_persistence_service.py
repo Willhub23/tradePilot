@@ -21,7 +21,7 @@ class AgentDecisionPersistenceService:
             symbol=context.symbol,
             **decision.model_dump(),
             market_context=context.market_analysis.model_dump(mode="json"),
-            macro_context=context.macro_risk.model_dump(mode="json"),
+            macro_context=context.macro_context,
         )
         with SessionLocal() as db:
             db.add(record)

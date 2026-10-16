@@ -3,10 +3,9 @@ from typing import Literal
 
 from pydantic import ConfigDict
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models.market_models import MultiTimeframeAnalysis
-from app.models.macro_models import MacroEventRisk
 from app.models.trade_models import TradeProposal
 from app.models.paper_trading_models import PaperPosition
 
@@ -20,7 +19,7 @@ class AgentDecision(BaseModel):
         "none",
     ]
 
-    confidence: float
+    confidence: float = Field(ge=0, le=100, allow_inf_nan=False)
 
     thesis: str
 
@@ -37,7 +36,6 @@ class AgentMarketContext(BaseModel):
 
     macro_context: dict
     evidence_priority: dict
-    macro_risk: MacroEventRisk
 
 
 class PersistedAgentDecision(BaseModel):

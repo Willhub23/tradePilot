@@ -7,65 +7,68 @@ class MacroContextService:
         events: list[MacroEvent],
         now,
     ) -> dict:
-        if not events:
-            return {
-                "state": "normal",
-                "event_name": None,
-                "event_category": None,
-                "speaker": None,
-                "impact": "low",
-                "minutes_to_event": None,
-                "minutes_since_event": None,
-                "scheduled": False,
-                "allow_new_trade": True,
-            }
-
         high_impact_events = [event for event in events if event.impact == "high"]
 
-        if not high_impact_events:
-            return {
-                "state": "normal",
-                "event_name": None,
-                "event_category": None,
-                "speaker": None,
-                "impact": "low",
-                "minutes_to_event": None,
-                "minutes_since_event": None,
-                "scheduled": False,
-                "allow_new_trade": True,
-            }
+        relevant_events = []
+
+        for event in high_impact_events:
+            minutes = (event.event_time - now).total_seconds() / 60
+
+            if -30 <= minutes <= 1440:
+                relevant_events.append(event)
+
+        if not relevant_events:
+            return self._normal_context()
 
         nearest = min(
-            high_impact_events,
+            relevant_events,
             key=lambda event: abs((event.event_time - now).total_seconds()),
         )
 
-        minutes = (nearest.event_time - now).total_seconds() / 60
+        nearest_minutes = (nearest.event_time - now).total_seconds() / 60
 
-        if 0 <= minutes <= 15:
+        blocking_event = any(
+            -30 <= (event.event_time - now).total_seconds() / 60 <= 15
+            for event in relevant_events
+        )
+
+        if 0 <= nearest_minutes <= 15:
             state = "event_imminent"
-            allow_new_trade = False
 
-        elif 15 < minutes <= 60:
+        elif 15 < nearest_minutes <= 60:
             state = "pre_event"
-            allow_new_trade = True
 
-        elif -30 <= minutes < 0:
+        elif -30 <= nearest_minutes < 0:
             state = "post_event"
-            allow_new_trade = False
 
         else:
             state = "high_impact_day"
-            allow_new_trade = True
 
         return {
             "state": state,
             "event_name": nearest.name,
-            "event_category": getattr(nearest, "category", None),
-            "speaker": getattr(nearest, "speaker", None),
+            "event_category": nearest.category,
+            "speaker": nearest.speaker,
             "impact": nearest.impact,
-            "minutes_to_event": (round(minutes, 1) if minutes >= 0 else None),
-            "minutes_since_event": (round(abs(minutes), 1) if minutes < 0 else None),
-            "scheduled": getattr(nearest, "scheduled", True),
-            "allow_new_trade": allow_new_trade,
+            "minutes_to_event": (
+                round(nearest_minutes, 1) if nearest_minutes >= 0 else None
+            ),
+            "minutes_since_event": (
+                round(abs(nearest_minutes), 1) if nearest_minutes < 0 else None
+            ),
+            "scheduled": nearest.scheduled,
+            "allow_new_trade": not blocking_event,
+        }
+
+    def _normal_context(self) -> dict:
+        return {
+            "state": "normal",
+            "event_name": None,
+            "event_category": None,
+            "speaker": None,
+            "impact": "low",
+            "minutes_to_event": None,
+            "minutes_since_event": None,
+            "scheduled": False,
+            "allow_new_trade": True,
         }

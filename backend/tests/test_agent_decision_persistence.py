@@ -14,7 +14,6 @@ from app.services import trading_cycle_service
 from app.api.paper_routes import create_paper_router
 from app.db_models import AgentDecisionRecord, PaperTradeRecord
 from app.models.agent_models import AgentDecision, AgentMarketContext
-from app.models.macro_models import MacroEventRisk
 from app.models.market_models import MultiTimeframeAnalysis, TimeframeAnalysis
 from app.services.agent_decision_persistence_service import AgentDecisionPersistenceService
 from app.services.agent_service import AgentService
@@ -23,6 +22,7 @@ from app.providers.local_paper_broker_provider import LocalPaperBrokerProvider
 from app.services.position_manager_service import PositionManagerService
 
 from tests.market_fixtures import market_structure_fields
+from tests.macro_fixtures import agent_macro_fields, macro_events
 
 pytestmark = pytest.mark.usefixtures("isolated_sessions")
 
@@ -42,10 +42,7 @@ def context():
         )],
             overall_score=65, overall_bias="bullish", timeframe_alignment="aligned",
         ),
-        macro_risk=MacroEventRisk(
-            event_risk="medium", next_event="US Initial Jobless Claims",
-            minutes_until_event=120, event_time=now, allow_new_trade=True,
-        ),
+        **agent_macro_fields(),
     )
 
 
@@ -71,7 +68,7 @@ def test_save_and_reload_context(context, action, isolated_sessions):
     for name, value in original.model_dump().items():
         assert getattr(record, name) == value
     assert record.market_context == context.market_analysis.model_dump(mode="json")
-    assert record.macro_context == context.macro_risk.model_dump(mode="json")
+    assert record.macro_context == context.macro_context
     with isolated_sessions() as db:
         assert db.get(AgentDecisionRecord, decision_id).action == action
     assert AgentDecisionPersistenceService().get_decision("missing") is None
@@ -98,7 +95,7 @@ def test_agent_persists_final_decision(context, case, monkeypatch, tmp_path, iso
     if case == "grounded":
         raw.thesis = "The macro event could push gold higher."
     if case == "macro":
-        context.macro_risk.allow_new_trade = False
+        context.macro_context["allow_new_trade"] = False
     provider = Mock()
     provider.make_decision.return_value = raw
     result = AgentService(provider).make_decision(context)
@@ -124,7 +121,7 @@ def client(context, monkeypatch, tmp_path):
     analysis = Mock()
     analysis.analyze_multi_timeframe.return_value = context.market_analysis
     macro = Mock()
-    macro.get_event_risk.return_value = context.macro_risk
+    macro.get_events.return_value = macro_events(datetime.now(timezone.utc))
     paper = PaperTradingService()
     app = FastAPI()
     cycle = trading_cycle_service.TradingCycleService(analysis, macro, LocalPaperBrokerProvider(paper))
