@@ -66,3 +66,66 @@ class PaperTradeRecord(Base):
         Float,
         nullable=True,
     )
+
+
+class BrokerExecutionRecord(Base):
+    __tablename__ = "broker_executions"
+
+    request_id: Mapped[str] = mapped_column(
+        String,
+        primary_key=True,
+    )
+
+    agent_decision_id: Mapped[str | None] = mapped_column(
+        String,
+        ForeignKey("agent_decisions.id"),
+        nullable=True,
+    )
+
+    symbol: Mapped[str] = mapped_column(String)
+
+    status: Mapped[str] = mapped_column(
+        String,
+        default="prepared",
+        nullable=False,
+    )
+
+    request_data: Mapped[dict] = mapped_column(JSONB().with_variant(JSON(), "sqlite"))
+
+    broker_order_id: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True,
+    )
+
+    broker_position_id: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True,
+    )
+
+    filled_volume_lots: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True,
+    )
+
+    fill_price: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True,
+    )
+
+    error_code: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True,
+    )
+
+    error_message: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+    )

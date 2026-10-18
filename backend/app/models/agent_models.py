@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
+from app.models.execution_models import BrokerExecutionResult
 from pydantic import ConfigDict
 
 from pydantic import BaseModel, Field
@@ -58,5 +59,7 @@ class AgentResult(BaseModel):
     decision: AgentDecision
     proposal: TradeProposal | None
     approved: bool
-    position: PaperPosition | None
+
+    position: PaperPosition | None = None
     execution_block_reason: str | None = None
+    execution_result: BrokerExecutionResult | None = None

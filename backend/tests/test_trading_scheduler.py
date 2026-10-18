@@ -17,7 +17,8 @@ from app.providers.broker_base import BrokerProvider
 from app.services.position_manager_service import PositionManagerService
 from app.services.trading_scheduler import create_trading_scheduler, run_scheduled_cycle
 from tests.market_fixtures import market_structure_fields
-
+from app.models.execution_models import BrokerExecutionResult
+from app.models.paper_trading_models import PaperPosition
 
 
 @pytest.fixture
@@ -25,21 +26,37 @@ def cycle(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
     analysis = Mock()
     analysis.analyze_multi_timeframe.return_value = MultiTimeframeAnalysis(
-        symbol="XAUUSD", price=4180, price_timestamp=datetime.now(timezone.utc),
-        timeframes=[TimeframeAnalysis(
-            **market_structure_fields(current_price=4180.0),
-            interval="1h", latest_candle_timestamp=datetime.now(timezone.utc),
-            rsi=60, ema_20=4180, ema_50=4170, atr=10, score=65,
-            bias="bullish", trend_direction="bullish", trend_strength=1.5,
-            trend_strength_label="strong",
-        )], overall_score=65, overall_bias="bullish", timeframe_alignment="aligned",
+        symbol="XAUUSD",
+        price=4180,
+        price_timestamp=datetime.now(timezone.utc),
+        timeframes=[
+            TimeframeAnalysis(
+                **market_structure_fields(current_price=4180.0),
+                interval="1h",
+                latest_candle_timestamp=datetime.now(timezone.utc),
+                rsi=60,
+                ema_20=4180,
+                ema_50=4170,
+                atr=10,
+                score=65,
+                bias="bullish",
+                trend_direction="bullish",
+                trend_strength=1.5,
+                trend_strength_label="strong",
+            )
+        ],
+        overall_score=65,
+        overall_bias="bullish",
+        timeframe_alignment="aligned",
     )
     macro = Mock()
     macro.get_events.return_value = []
     agent = Mock()
     agent.make_decision.return_value = PersistedAgentDecision(
         decision_id="decision-1",
-        decision=AgentDecision(action="long", trade_style="swing", confidence=75, thesis="Trend"),
+        decision=AgentDecision(
+            action="long", trade_style="swing", confidence=75, thesis="Trend"
+        ),
     )
     monkeypatch.setattr(trading_cycle_service, "AgentService", lambda **kwargs: agent)
     broker = create_autospec(BrokerProvider, instance=True, spec_set=True)
@@ -48,17 +65,26 @@ def cycle(monkeypatch, tmp_path):
     service.market_session_service = Mock()
     service.market_session_service.is_market_open.return_value = True
     service.market_session_service.is_quote_fresh.return_value = True
-    from app.models.paper_trading_models import PaperPosition
-    service.broker_provider.open_position.return_value = PaperPosition(
-        id="trade-1", symbol="XAUUSD", direction="long", entry_price=4180,
-        opened_at=datetime.now(timezone.utc), status="open", confidence=75, thesis="Trend",
+
+    broker.open_position.return_value = BrokerExecutionResult(
+        request_id="request-1",
+        status="filled",
+        broker_order_id=None,
+        broker_position_id="trade-1",
+        filled_volume_lots=0.01,
+        fill_price=4180.0,
     )
     return service
 
 
-@pytest.mark.parametrize("market_open,fresh,reason", [
-    (True, True, None), (False, True, "market_closed"), (True, False, "stale_quote"),
-])
+@pytest.mark.parametrize(
+    "market_open,fresh,reason",
+    [
+        (True, True, None),
+        (False, True, "market_closed"),
+        (True, False, "stale_quote"),
+    ],
+)
 def test_cycle_preserves_response_and_guards(cycle, market_open, fresh, reason):
     cycle.market_session_service.is_market_open.return_value = market_open
     cycle.market_session_service.is_quote_fresh.return_value = fresh
@@ -69,14 +95,30 @@ def test_cycle_preserves_response_and_guards(cycle, market_open, fresh, reason):
     assert result.approved is True
     assert result.execution_block_reason == reason
     cycle.agent_service.make_decision.assert_called_once()
-    assert cycle.broker_provider.open_position.call_count == (1 if reason is None else 0)
+
+    assert cycle.broker_provider.open_position.call_count == (
+        1 if reason is None else 0
+    )
     cycle.broker_provider.get_open_positions.assert_called_once_with()
+
     if reason is None:
-        cycle.broker_provider.open_position.assert_called_once_with(
-            proposal=result.proposal, entry_price=4180,
-            stop_loss=4165, take_profit=4200, max_holding_minutes=2880,
-        )
-    assert (result.position is not None) == (reason is None)
+        cycle.broker_provider.open_position.assert_called_once()
+
+        request = cycle.broker_provider.open_position.call_args.kwargs["request"]
+
+        assert request.agent_decision_id == "decision-1"
+        assert request.symbol == "XAUUSD"
+        assert request.direction == result.proposal.direction
+        assert request.trade_style == result.proposal.trade_style
+        assert request.confidence == result.proposal.confidence
+        assert request.reference_price == 4180
+        assert request.stop_loss == 4165
+        assert request.take_profit == 4200
+        assert request.max_holding_minutes == 2880
+        assert request.volume_lots == 0.01
+
+        assert result.position is None
+        assert (result.execution_result is not None) == (reason is None)
 
 
 def test_manual_endpoint_delegates(cycle):
@@ -111,7 +153,9 @@ def test_scheduler_runs_open_market(caplog, position_manager):
     assert "completed for XAUUSD" in caplog.text
 
 
-@pytest.mark.parametrize("failure", ["market", "llm", "database", "session", "position_manager"])
+@pytest.mark.parametrize(
+    "failure", ["market", "llm", "database", "session", "position_manager"]
+)
 def test_scheduler_logs_failure_and_can_run_again(failure, caplog, position_manager):
     cycle = Mock()
     if failure == "session":
@@ -133,7 +177,9 @@ def test_scheduler_logs_failure_and_can_run_again(failure, caplog, position_mana
 
 
 @pytest.mark.parametrize("configured,minutes", [(None, 15), ("3", 3)])
-def test_scheduler_config_and_delayed_start(monkeypatch, configured, minutes, position_manager):
+def test_scheduler_config_and_delayed_start(
+    monkeypatch, configured, minutes, position_manager
+):
     if configured is None:
         monkeypatch.delenv("TRADING_INTERVAL_MINUTES", raising=False)
     else:
@@ -208,9 +254,21 @@ def position_manager():
 
 def test_cycle_blocks_existing_broker_position(cycle):
     cycle.broker_provider.get_open_positions.return_value = [
-        cycle.broker_provider.open_position.return_value
+        PaperPosition(
+            id="trade-1",
+            symbol="XAUUSD",
+            direction="long",
+            trade_style="swing",
+            entry_price=4180.0,
+            opened_at=datetime.now(timezone.utc),
+            status="open",
+            confidence=70.0,
+            thesis="test",
+        )
     ]
+
     result = cycle.run("XAUUSD")
+
     assert result.execution_block_reason == "position_already_open"
     assert result.position is None
     cycle.broker_provider.get_open_positions.assert_called_once_with()
@@ -224,6 +282,57 @@ def test_cycle_requires_one_hour_analysis(cycle):
     cycle.broker_provider.open_position.assert_not_called()
 
 
+def test_cycle_persists_execution(cycle):
+    persistence = Mock()
+    persistence.get_unresolved.return_value = []
+    cycle.execution_persistence = persistence
+
+    original_open_position = cycle.broker_provider.open_position
+
+    def execute(request):
+        return BrokerExecutionResult(
+            request_id=request.request_id,
+            status="filled",
+            broker_position_id="trade-1",
+            filled_volume_lots=0.01,
+            fill_price=4180.0,
+        )
+
+    original_open_position.side_effect = execute
+
+    result = cycle.run("XAUUSD")
+
+    persistence.save_request.assert_called_once()
+    persistence.update_result.assert_called_once()
+
+    saved_request = persistence.save_request.call_args.args[0]
+    saved_result = persistence.update_result.call_args.args[0]
+
+    assert saved_request.symbol == "XAUUSD"
+    assert saved_request.request_id == saved_result.request_id
+    assert result.execution_result.status == "filled"
+
+
+def test_cycle_blocks_unresolved_execution(cycle):
+    persistence = Mock()
+    cycle.execution_persistence = persistence
+
+    persistence.get_unresolved.return_value = [
+        Mock(
+            symbol="XAUUSD",
+            status="submitted",
+        )
+    ]
+
+    result = cycle.run("XAUUSD")
+
+    assert result.execution_block_reason == "unresolved_broker_execution"
+    assert result.execution_result is None
+
+    cycle.broker_provider.open_position.assert_not_called()
+    persistence.save_request.assert_not_called()
+
+
 def test_cycle_builds_macro_context_and_evidence_from_events(cycle, monkeypatch):
     from app.models.macro_models import MacroEvent
     from app.services.evidence_priority_service import EvidencePriorityService
@@ -232,16 +341,23 @@ def test_cycle_builds_macro_context_and_evidence_from_events(cycle, monkeypatch)
     clock = Mock()
     clock.now.return_value = NOW
     monkeypatch.setattr(trading_cycle_service, "datetime", clock)
-    cycle.macro_service.get_events.return_value = [MacroEvent(
-        name="CPI", country="US", impact="high",
-        event_time=NOW + timedelta(minutes=10), category="inflation",
-    )]
+    cycle.macro_service.get_events.return_value = [
+        MacroEvent(
+            name="CPI",
+            country="US",
+            impact="high",
+            event_time=NOW + timedelta(minutes=10),
+            category="inflation",
+        )
+    ]
     cycle.run("XAUUSD")
     context = cycle.agent_service.make_decision.call_args.args[0]
     assert context.macro_context["state"] == "event_imminent"
     assert context.macro_context["event_name"] == "CPI"
     assert context.macro_context["allow_new_trade"] is False
-    assert context.evidence_priority == EvidencePriorityService().prioritize(context.macro_context)
+    assert context.evidence_priority == EvidencePriorityService().prioritize(
+        context.macro_context
+    )
     assert "macro_risk" not in context.model_dump()
     cycle.macro_service.get_events.assert_called_once_with()
     cycle.macro_service.get_event_risk.assert_not_called()

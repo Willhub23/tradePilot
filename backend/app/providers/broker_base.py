@@ -1,20 +1,20 @@
 from typing import Protocol
 
+from app.models.execution_models import (
+    BrokerExecutionRequest,
+    BrokerExecutionResult,
+)
+from app.models.broker_models import BrokerPosition
 from app.models.paper_trading_models import PaperPosition
-from app.models.trade_models import TradeProposal
 
 
 class BrokerProvider(Protocol):
-    def get_open_positions(self) -> list[PaperPosition]: ...
+    def get_open_positions(self) -> list[BrokerPosition]: ...
 
     def open_position(
         self,
-        proposal: TradeProposal,
-        entry_price: float,
-        stop_loss: float | None = None,
-        take_profit: float | None = None,
-        max_holding_minutes: int | None = None,
-    ) -> PaperPosition: ...
+        request: BrokerExecutionRequest,
+    ) -> BrokerExecutionResult: ...
 
     def close_position(
         self,

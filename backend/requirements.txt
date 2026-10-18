@@ -7,3 +7,7 @@ openai
 sqlalchemy
 psycopg[binary]
 APScheduler>=3.11,<4
+ctrader-open-api==0.9.2
+pyOpenSSL==24.1.0
+cryptography<43
+service_identity==24.2.0
