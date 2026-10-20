@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, JSON, String, Text, Integer
+from sqlalchemy import DateTime, Float, ForeignKey, JSON, String, Text, Integer, BigInteger, Boolean
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -129,3 +129,39 @@ class BrokerExecutionRecord(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
     )
+
+
+class BrokerPositionCloseRecord(Base):
+    """One durable close attempt per DEMO account/position; retries require policy."""
+    __tablename__ = "broker_position_closes"
+
+    account_id: Mapped[str] = mapped_column(String, primary_key=True)
+    broker_position_id: Mapped[str] = mapped_column(String, primary_key=True)
+    volume: Mapped[int] = mapped_column(BigInteger)
+    status: Mapped[str] = mapped_column(String, nullable=False)
+    broker_order_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class BrokerRuntimeState(Base):
+    __tablename__ = "broker_runtime_state"
+    account_id: Mapped[str] = mapped_column(String, primary_key=True)
+    paused: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    critical_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class StrategyEvaluationRecord(Base):
+    __tablename__ = "strategy_evaluations"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    opportunity_id: Mapped[str | None] = mapped_column(String, nullable=True, unique=True)
+    strategy_id: Mapped[str] = mapped_column(String, nullable=False)
+    symbol: Mapped[str] = mapped_column(String, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False)
+    agent_decision_id: Mapped[str | None] = mapped_column(String, ForeignKey("agent_decisions.id"), nullable=True)
+    request_id: Mapped[str | None] = mapped_column(String, ForeignKey("broker_executions.request_id"), nullable=True, unique=True)
+    data: Mapped[dict] = mapped_column(JSONB().with_variant(JSON(), "sqlite"), nullable=False)

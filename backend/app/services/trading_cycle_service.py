@@ -1,5 +1,9 @@
 from datetime import datetime, timezone
+import logging
+logger = logging.getLogger(__name__)
 from uuid import uuid4
+import threading
+from app.config.strategy_config import StrategySelection
 
 from app.services.macro_context_service import MacroContextService
 from app.services.evidence_priority_service import EvidencePriorityService
@@ -32,7 +36,12 @@ class TradingCycleService:
         macro_service: MacroService,
         broker_provider: BrokerProvider,
         execution_persistence: BrokerExecutionPersistenceService | None = None,
+        strategy_selection: StrategySelection | None = None,
     ):
+        self.runtime = None
+        self.strategy_selection = strategy_selection or StrategySelection.from_env()
+        self._cycle_lock = threading.Lock()
+        self.quick_trade_cycle = None
         self.analysis_service = analysis_service
         self.macro_service = macro_service
         self.broker_provider = broker_provider
@@ -45,7 +54,56 @@ class TradingCycleService:
         self.evidence_priority_service = EvidencePriorityService()
         self.trade_execution_policy_service = TradeExecutionPolicyService()
 
+    def exposure_block_reason(self):
+        if self.broker_provider.get_open_positions():
+            return "position_already_open"
+        if self.execution_persistence is not None and self.execution_persistence.get_unresolved():
+            return "unresolved_broker_execution"
+        client = getattr(self.broker_provider, "client", None)
+        if (self.execution_persistence is not None and client is not None
+                and self.execution_persistence.get_unresolved_closes(client.account_id)):
+            return "unresolved_position_close"
+        return None
+
+    def entry_block_reason(self):
+        reason = self.runtime.block_reason() if self.runtime is not None else None
+        if reason: return reason
+        client = getattr(self.broker_provider, "client", None)
+        if (client is None or client.environment != "demo" or not client.authenticated or not client.demo_verified):
+            return "broker_not_verified_demo"
+        return self.exposure_block_reason()
+
     def run(self, symbol: str) -> AgentResult:
+        if not self._cycle_lock.acquire(blocking=False):
+            raise RuntimeError("A trading cycle is already running")
+        try:
+            if self.strategy_selection.observation_enabled or self.strategy_selection.strategy == "quick_trade":
+                if self.quick_trade_cycle is None:
+                    from app.services.quick_trade_cycle_service import QuickTradeCycleService
+                    self.quick_trade_cycle = QuickTradeCycleService(self)
+                if self.strategy_selection.observation_enabled:
+                    return self.quick_trade_cycle.observe(symbol)
+                # A runtime started read-only cannot fall through into inference.
+                if self.runtime is not None and self.runtime.observation_enabled is True:
+                    raise RuntimeError("Observation runtime/configuration mismatch")
+                return self.quick_trade_cycle.run(symbol)
+            if self.runtime is not None:
+                if self.runtime.observation_enabled is True:
+                    raise RuntimeError("Observation runtime/configuration mismatch")
+                if symbol.upper() != "XAUUSD":
+                    raise ValueError("Only XAUUSD is supported by the DEMO runtime")
+                reason = self.exposure_block_reason()
+                if reason:
+                    from app.models.agent_models import AgentDecision
+                    return AgentResult(decision_id=None, decision=AgentDecision(action="hold", trade_style="none",
+                        confidence=0, thesis=reason), proposal=None, approved=False, execution_block_reason=reason)
+            # The provider serializes final recovery/entry checks; inference holds no runtime lock.
+            return self._run(symbol)
+        finally:
+            self._cycle_lock.release()
+
+    def _run(self, symbol):
+        logger.info("Trading cycle started symbol=%s timestamp=%s", symbol, datetime.now(timezone.utc).isoformat())
         market_analysis = self.analysis_service.analyze_multi_timeframe(
             symbol=symbol,
         )
@@ -68,8 +126,7 @@ class TradingCycleService:
             evidence_priority=evidence_priority,
         )
 
-        print("=== AGENT CONTEXT ===")
-        print(context.model_dump_json(indent=2))
+        logger.info("Agent market context %s", context.model_dump_json())
 
         result = self.agent_service.make_decision(context)
         decision = result.decision
@@ -86,7 +143,9 @@ class TradingCycleService:
         position = None
         execution_result = None
 
-        if approved and proposal is not None:
+        if self.runtime is not None and self.runtime.block_reason():
+            execution_block_reason = self.runtime.block_reason()
+        elif approved and proposal is not None:
             open_positions = self.broker_provider.get_open_positions()
 
             existing_position = next(
@@ -154,6 +213,7 @@ class TradingCycleService:
                     if self.execution_persistence is not None:
                         self.execution_persistence.save_request(execution_request)
 
+                    logger.info("Broker request %s", execution_request.model_dump_json())
                     execution_result = self.broker_provider.open_position(
                         request=execution_request,
                     )
@@ -166,6 +226,9 @@ class TradingCycleService:
 
                         self.execution_persistence.update_result(execution_result)
 
+        logger.info("Trading cycle completed decision_id=%s approved=%s block=%s result=%s",
+                    result.decision_id, approved, execution_block_reason,
+                    execution_result.model_dump_json() if execution_result else None)
         return AgentResult(
             decision_id=result.decision_id,
             decision=decision,

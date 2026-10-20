@@ -122,8 +122,12 @@ class TwelveDataProvider:
         candles = []
 
         for item in data["values"]:
+            timestamp = datetime.fromisoformat(item["datetime"])
+            # time_series is explicitly requested in UTC; retain its source time.
+            if timestamp.tzinfo is None:
+                timestamp = timestamp.replace(tzinfo=timezone.utc)
             candle = MarketCandle(
-                timestamp=datetime.fromisoformat(item["datetime"]),
+                timestamp=timestamp.astimezone(timezone.utc),
                 open=float(item["open"]),
                 high=float(item["high"]),
                 low=float(item["low"]),

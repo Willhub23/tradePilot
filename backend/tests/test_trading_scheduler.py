@@ -176,7 +176,7 @@ def test_scheduler_logs_failure_and_can_run_again(failure, caplog, position_mana
     assert target.call_count == 2
 
 
-@pytest.mark.parametrize("configured,minutes", [(None, 15), ("3", 3)])
+@pytest.mark.parametrize("configured,minutes", [(None, 5), ("3", 3)])
 def test_scheduler_config_and_delayed_start(
     monkeypatch, configured, minutes, position_manager
 ):

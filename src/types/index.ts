@@ -1,4 +1,4 @@
-export type Page = 'dashboard' | 'markets' | 'strategies' | 'agent' | 'settings';
+export type Page = 'dashboard' | 'markets' | 'strategies' | 'agent' | 'settings' | 'journal' | 'account';
 export interface PricePoint { time: string; price: number }
 export interface Position { id: string; symbol: string; name: string; side: 'Buy' | 'Sell'; lots: number; entry: number; current: number; pnl: number }
 export interface AgentActivity { id: string; title: string; description: string; time: string; kind: 'research' | 'system' | 'review' }

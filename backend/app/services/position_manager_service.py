@@ -14,6 +14,9 @@ class PositionManagerService:
         self.market_service = market_service
 
     def manage_open_positions(self):
+        if getattr(self.broker_provider, "manages_broker_positions", False) is True:
+            return self.broker_provider.manage_positions()
+
         positions = self.broker_provider.get_open_positions()
 
         closed_positions = []

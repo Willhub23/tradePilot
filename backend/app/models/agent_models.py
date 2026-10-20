@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from app.models.market_models import MultiTimeframeAnalysis
 from app.models.trade_models import TradeProposal
+from app.strategies.models import StrategyEvaluation
 from app.models.paper_trading_models import PaperPosition
 
 
@@ -37,9 +38,12 @@ class AgentMarketContext(BaseModel):
 
     macro_context: dict
     evidence_priority: dict
+    strategy_evaluation: StrategyEvaluation | None = None
+    opportunity_id: str | None = None
 
 
 class PersistedAgentDecision(BaseModel):
+    reasoning_timing: dict | None = None
     decision_id: str
     decision: AgentDecision
 
@@ -55,7 +59,9 @@ class AgentDecisionHistory(AgentDecision):
 
 
 class AgentResult(BaseModel):
-    decision_id: str
+    decision_id: str | None
+    strategy_evaluation_id: str | None = None
+    opportunity_id: str | None = None
     decision: AgentDecision
     proposal: TradeProposal | None
     approved: bool

@@ -3,6 +3,8 @@ import os
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
+from app.models.broker_models import BrokerPositionManagementResult
+
 from app.services.position_manager_service import PositionManagerService
 from app.services.trading_cycle_service import TradingCycleService
 
@@ -16,6 +18,11 @@ def run_scheduled_cycle(
     symbol: str,
 ) -> None:
     try:
+        runtime = getattr(cycle, "runtime", None)
+        # For DEMO, keep positions observable even outside entry sessions.
+        if getattr(runtime, "started", False) is True:
+            for report in position_manager.manage_open_positions():
+                logger.info("Broker management: %s", report.model_dump_json())
         if not cycle.market_session_service.is_market_open():
             logger.info(
                 "Scheduled trading cycle skipped: market closed (%s)",
@@ -24,9 +31,12 @@ def run_scheduled_cycle(
             return
 
         logger.info("Managing open positions for %s", symbol)
-        closed_positions = position_manager.manage_open_positions()
+        closed_positions = [] if getattr(runtime, "started", False) is True else position_manager.manage_open_positions()
 
         for position in closed_positions:
+            if isinstance(position, BrokerPositionManagementResult):
+                logger.info("Broker management: %s", position.model_dump_json())
+                continue
             logger.info(
                 "Closed position %s for %s: %s",
                 position.id,
@@ -48,7 +58,7 @@ def create_trading_scheduler(
     cycle: TradingCycleService,
     position_manager: PositionManagerService,
 ) -> BackgroundScheduler:
-    interval = int(os.getenv("TRADING_INTERVAL_MINUTES", "15"))
+    interval = int(os.getenv("TRADING_INTERVAL_MINUTES", "5"))
 
     if interval < 1:
         raise ValueError("TRADING_INTERVAL_MINUTES must be a positive integer")

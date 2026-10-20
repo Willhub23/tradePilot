@@ -65,6 +65,17 @@ Do not wrap the JSON in markdown.
 Do not add commentary before or after the JSON.
 """
 
+        if context.strategy_evaluation is not None:
+            system_prompt += """
+This is a Quick Trade proposal review, not independent trade generation.
+Assess only strategy_evaluation.proposal and its measured supporting/conflicting
+signals. Approve its exact direction with trade_style=intraday, or choose hold.
+Do not substitute swing levels, change SL/TP, or extend maximum holding time.
+Explain whether the supplied short-term setup is justified; never invent levels.
+"""
+
+        context_json = context.model_dump_json(
+            exclude={"strategy_evaluation", "opportunity_id"} if context.strategy_evaluation is None else None)
         print("=== AGENT PROMPT ===")
         print(system_prompt)
         for attempt in range(self.MAX_ATTEMPTS):
@@ -86,7 +97,7 @@ Do not add commentary before or after the JSON.
                             "role": "user",
                             "content": (
                                 "Analyze this market context:\n\n"
-                                + context.model_dump_json()
+                                + context_json
                             ),
                         },
                     ],

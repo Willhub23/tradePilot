@@ -6,6 +6,8 @@ import {
   ChevronRight,
   FlaskConical,
   LayoutDashboard,
+  BookOpen,
+  Wallet,
   Settings2,
   ShieldCheck,
 } from "lucide-react";
@@ -19,6 +21,8 @@ const navigation = [
   { id: "markets", label: "Markets", icon: ChartNoAxesCombined },
   { id: "strategies", label: "Strategies", icon: FlaskConical },
   { id: "agent", label: "Agent", icon: Bot },
+  { id: "account", label: "Broker Account", icon: Wallet },
+  { id: "journal", label: "Decision Journal", icon: BookOpen },
   { id: "settings", label: "Settings", icon: Settings2 },
 ] as const;
 export function AppLayout({
@@ -65,8 +69,8 @@ export function AppLayout({
           <div className="sandbox-card">
             <ShieldCheck size={20} />
             <strong>A space to explore</strong>
-            <p>Research, test, and learn with fictional market data.</p>
-            <Badge tone="green">PAPER TRADING</Badge>
+            <p>{(page === "journal" || page === "account") ? (page === "account" ? "Inspect broker-confirmed DEMO account data without trading controls." : "Review persisted strategy and trading records without executing trades.") : "Research, test, and learn with fictional market data."}</p>
+            <Badge tone="green">{(page === "journal" || page === "account") ? "READ ONLY" : "PAPER TRADING"}</Badge>
           </div>
           <div className="workspace-footer">
             <span className="avatar">TP</span>
@@ -90,7 +94,7 @@ export function AppLayout({
               <i />
               Demo environment
             </span>
-            <Badge tone="green">PAPER TRADING</Badge>
+            <Badge tone="green">{(page === "journal" || page === "account") ? "READ ONLY" : "PAPER TRADING"}</Badge>
           </div>
         </header>
         <main id="main-content">{children}</main>
@@ -99,7 +103,7 @@ export function AppLayout({
             TradePilot <span className="footer-divider">/</span> Built for
             thoughtful research.
           </span>
-          <span>Mock data only · No broker connected</span>
+          <span>{(page === "journal" || page === "account") ? "Read-only data · No trading controls" : "Mock data only · No broker connected"}</span>
         </footer>
       </div>
     </div>

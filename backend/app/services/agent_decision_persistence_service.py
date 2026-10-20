@@ -15,12 +15,16 @@ class AgentDecisionPersistenceService:
         decision: AgentDecision,
     ) -> str:
         decision_id = str(uuid4())
+        market_context = context.market_analysis.model_dump(mode="json")
+        if context.strategy_evaluation is not None:
+            market_context["strategy_evaluation"] = context.strategy_evaluation.model_dump(mode="json")
+            market_context["opportunity_id"] = context.opportunity_id
         record = AgentDecisionRecord(
             id=decision_id,
             timestamp=datetime.now(timezone.utc),
             symbol=context.symbol,
             **decision.model_dump(),
-            market_context=context.market_analysis.model_dump(mode="json"),
+            market_context=market_context,
             macro_context=context.macro_context,
         )
         with SessionLocal() as db:

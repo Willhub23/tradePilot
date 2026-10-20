@@ -1,0 +1,189 @@
+{
+  "total_evaluations": 2,
+  "counts": {
+    "eligible": 0,
+    "rejected": 1,
+    "incomplete": 0,
+    "blocked": 1,
+    "error": 0,
+    "not_evaluated": 0
+  },
+  "final_statuses": {
+    "skipped": 1,
+    "rejected": 1
+  },
+  "rejections_by_code": {
+    "volatility_unsuitable": 1,
+    "reaction_evidence_missing": 1
+  },
+  "block_reasons": {
+    "trading_paused": 1,
+    "quick_trade_rejected": 1
+  },
+  "setup_types": {
+    "not_evaluated": 1,
+    "not_identified": 1
+  },
+  "count_semantics": "Initial gate outcomes; skipped controls count as blocked. Final cycle statuses are separate. Reason codes count once per cycle.",
+  "atr": {
+    "values": {
+      "count": 1,
+      "min": 3.8779,
+      "mean": 3.8779,
+      "median": 3.8779,
+      "p90": 3.8779,
+      "p95": 3.8779,
+      "max": 3.8779
+    },
+    "ratio": {
+      "count": 1,
+      "min": 0.986,
+      "mean": 0.986,
+      "median": 0.986,
+      "p90": 0.986,
+      "p95": 0.986,
+      "max": 0.986
+    },
+    "above_max": 1,
+    "below_min": 0,
+    "ratio_above_max": 0,
+    "atr_observed": 1,
+    "ratio_observed": 1,
+    "rows_with_persisted_limits": 0,
+    "rows_without_persisted_limits": 2,
+    "fallback_current_limits": {
+      "min_atr": 0.75,
+      "max_atr": 3.0,
+      "max_atr_ratio": 1.75
+    },
+    "limits_note": "Per-row persisted limits where available; otherwise current defaults, not proof of historical configuration."
+  },
+  "latency_ms": {
+    "detection_ms": {
+      "count": 1,
+      "min": 7086.603334,
+      "mean": 7086.603334,
+      "median": 7086.603334,
+      "p90": 7086.603334,
+      "p95": 7086.603334,
+      "max": 7086.603334
+    },
+    "strategy_evaluation_ms": {
+      "count": 1,
+      "min": 0.564334,
+      "mean": 0.564334,
+      "median": 0.564334,
+      "p90": 0.564334,
+      "p95": 0.564334,
+      "max": 0.564334
+    },
+    "ai_reasoning_ms": {
+      "count": 0,
+      "min": null,
+      "mean": null,
+      "median": null,
+      "p90": null,
+      "p95": null,
+      "max": null
+    },
+    "risk_validation_ms": {
+      "count": 0,
+      "min": null,
+      "mean": null,
+      "median": null,
+      "p90": null,
+      "p95": null,
+      "max": null
+    },
+    "order_submission_ms": {
+      "count": 0,
+      "min": null,
+      "mean": null,
+      "median": null,
+      "p90": null,
+      "p95": null,
+      "max": null
+    },
+    "submission_to_fill_confirmation_ms": {
+      "count": 0,
+      "min": null,
+      "mean": null,
+      "median": null,
+      "p90": null,
+      "p95": null,
+      "max": null
+    }
+  },
+  "price_discrepancy": {
+    "max_time_skew_seconds": 5,
+    "meaningful_tp_fraction": 0.2,
+    "comparison_note": "Twelve Data receipt versus cTrader event timestamps; true market-event alignment is unknown.",
+    "comparable_pairs": 1,
+    "unpaired_reasons": {
+      "missing_or_invalid_prices": 1
+    },
+    "absolute_mid_gap": {
+      "count": 1,
+      "min": 1.01295,
+      "mean": 1.01295,
+      "median": 1.01295,
+      "p90": 1.01295,
+      "p95": 1.01295,
+      "max": 1.01295
+    },
+    "pairs_with_actual_tp": 0,
+    "pairs_without_actual_tp": 1,
+    "exceeds_fraction_of_actual_tp": 0,
+    "exceeds_fraction_of_current_min_target": 1,
+    "exceeds_fraction_of_current_max_target": 1,
+    "target_bounds_note": "Comparisons to configured $2-$5 bounds are context only; rejected setups have no inferred TP.",
+    "pairs": [
+      {
+        "status": "comparable",
+        "market_event_alignment_confirmed": false,
+        "timestamp_semantics": "analysis_provider_receipt_vs_broker_event",
+        "actual_tp_fraction": null,
+        "reference": 4125.75295,
+        "bid": 4124.69,
+        "ask": 4124.79,
+        "midpoint": 4124.74,
+        "reference_minus_mid": 1.01295,
+        "absolute_mid_gap": 1.01295,
+        "reference_minus_bid": 1.06295,
+        "reference_minus_ask": 0.96295,
+        "nearest_executable_gap": 0.96295,
+        "reference_timestamp": "2026-10-20T09:17:14.258584+00:00",
+        "broker_timestamp": "2026-10-20T09:17:14.854000+00:00",
+        "time_skew_seconds": 0.595416,
+        "evaluation_id": "70a027b5-6a43-49be-acd4-607fe1bad15b"
+      }
+    ]
+  },
+  "funnel": {
+    "raw_strategy_eligible": 0,
+    "eligible_after_input_execution_gates": 0,
+    "eligible_reached_ollama_confirmed": 0,
+    "eligible_ollama_unknown": 0,
+    "agent_stage_entered": 0,
+    "execution_intents": 0,
+    "broker_provider_calls": 0,
+    "confirmed_submissions": 0,
+    "confirmed_full_fills": 0,
+    "confirmed_any_fills": 0,
+    "execution_links_missing": 0
+  },
+  "sample_assessment": {
+    "market_evaluations": 1,
+    "note": "Insufficient observations for trends",
+    "trend_inference": "not_performed",
+    "missed_profitable_trades": "not_inferred"
+  },
+  "source": {
+    "type": "read_only_database",
+    "snapshot_completed_at": "2026-10-20T09:34:33.066255+00:00"
+  },
+  "window": {
+    "since": null,
+    "until": null
+  }
+}

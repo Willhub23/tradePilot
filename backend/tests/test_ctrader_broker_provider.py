@@ -195,18 +195,18 @@ def test_successful_market_order_fill(provider):
         ProtoOAExecutionType.ORDER_REJECTED,
     ],
 )
-def test_execution_event_received(execution_type, capsys):
+def test_execution_event_received(execution_type):
     client = CTraderClient.__new__(CTraderClient)
-
+    client._execution_event_handler = Mock()
     event = ProtoOAExecutionEvent()
     event.executionType = execution_type
-
-    with patch(
-        "app.integrations.ctrader.client.Protobuf.extract",
-        return_value=event,
-    ):
+    with patch("app.integrations.ctrader.client.Protobuf.extract", return_value=event), patch(
+        "app.integrations.ctrader.client.threads.deferToThread"
+    ) as dispatch:
         client._on_message_received(None, Mock())
-
-    output = capsys.readouterr().out
-
-    assert "CTRADER EXECUTION EVENT:" in output
+    dispatch.assert_called_once()
+    assert dispatch.call_args.args == (client._execution_event_handler.process, event)
+    assert dispatch.call_args.kwargs["received_at"].tzinfo is not None
+    assert dispatch.call_args.kwargs["received_monotonic_ns"] > 0
+    client._execution_event_handler.process.assert_not_called()
+    dispatch.return_value.addErrback.assert_called_once_with(client._on_execution_tracking_error)

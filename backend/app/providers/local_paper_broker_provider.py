@@ -3,6 +3,7 @@ from app.models.execution_models import (
     BrokerExecutionResult,
 )
 from app.models.paper_trading_models import PaperPosition
+from app.models.broker_models import BrokerPosition
 from app.models.trade_models import TradeProposal
 from app.services.paper_trading_service import PaperTradingService
 

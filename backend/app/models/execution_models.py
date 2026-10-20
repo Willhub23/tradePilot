@@ -1,11 +1,25 @@
 from typing import Literal
+from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
+
+
+class QuickTradeExecutionGuard(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid", allow_inf_nan=False)
+    original_entry: float = Field(gt=0)
+    stop_budget: float = Field(gt=0)
+    max_price_drift: float = Field(gt=0)
+    additional_cost: float = Field(ge=0)
 
 
 class BrokerExecutionRequest(BaseModel):
     request_id: str
     agent_decision_id: str | None
+    quick_trade_guard: QuickTradeExecutionGuard | None = None
+    opportunity_id: str | None = None
+    strategy_id: str | None = None
+    valid_until: datetime | None = None
+    timing: dict | None = None
 
     symbol: str
     direction: Literal["long", "short"]
@@ -30,6 +44,7 @@ class BrokerExecutionResult(BaseModel):
         "submitted",
         "filled",
         "rejected",
+        "cancelled",
         "pending",
         "unknown",
     ]
@@ -42,3 +57,12 @@ class BrokerExecutionResult(BaseModel):
 
     error_code: str | None = None
     error_message: str | None = None
+
+    broker_event_at: datetime | None = None
+    broker_event_time_source: str | None = None
+    received_at: datetime | None = None
+    receipt_monotonic_ns: int | None = None
+    receipt_process_id: str | None = None
+
+    protection_status: Literal["unchecked", "verified", "unsafe"] = "unchecked"
+    protection_message: str | None = None
